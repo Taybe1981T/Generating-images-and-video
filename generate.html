@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توليد وتمديد الفيديو | Generate</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #080c14; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background-color: #0f172a; border: 1px solid #1e293b; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        @keyframes blinkStart { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.7); } 50% { box-shadow: 0 0 0 10px rgba(59,130,246,0); } }
+        .flash-start { animation: blinkStart 0.8s ease 4; }
+    </style>
+    <script src="providers.js"></script>
+</head>
+<body class="p-4 md:p-6">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- ترويسة الموقع -->
+        <header class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-4 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
+                    <i class="fa-solid fa-film"></i> توليد وتمديد الفيديو (صفحة مستقلة)
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-1">توليد وتمديد حقيقي عبر الاتصال المباشر بالخوادم واستخراج آخر إطار تلقائياً.</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <a href="settings.html" class="bg-yellow-600/20 hover:bg-yellow-600 text-yellow-400 hover:text-white border border-yellow-500/30 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition" title="إعدادات مفاتيح API"><i class="fa-solid fa-key"></i> إعدادات المفاتيح</a>
+                <button onclick="saveAllSettings()" class="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات
+                </button>
+                <button onclick="resetAll()" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-trash-can"></i> حذف وتفريغ
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            
+            
+                    <p id="projectStatus" class="text-[11px] text-slate-400 font-mono">لا يوجد مشروع محفوظ.</p>
+                </div>
+
+                <!-- رفع الملفات -->
+                <div class="card p-5 rounded-xl shadow-lg">
+                    <h2 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-upload text-blue-400"></i> رفع وسائط البداية من جهازك
+                    </h2>
+                    
+                    <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg p-5 text-center cursor-pointer bg-slate-900/50 transition">
+                        <input type="file" id="fileInput" accept="video/*,image/*" class="hidden">
+                        <i class="fa-solid fa-photo-film text-3xl text-slate-500 mb-2"></i>
+                        <p class="text-xs text-slate-300 font-medium">اسحب صورة أو فيديو هنا، أو اضغط للاختيار</p>
+                        <p class="text-[11px] text-slate-500 mt-1">يُفضل إدخال صورة بدقة 16:9 أو فيديو قصير</p>
+                    </div>
+
+                    <!-- شاشة المعاينة -->
+                    <div id="previewArea" class="mt-3 hidden space-y-2">
+                        <div class="flex justify-between items-center text-xs text-slate-400">
+                            <span id="fileName" class="truncate max-w-[200px]"></span>
+                            <button onclick="clearMedia()" class="text-red-400 hover:underline text-[11px]">إزالة الملف</button>
+                        </div>
+                        <video id="videoPreview" class="w-full rounded bg-black max-h-48 hidden aspect-video" controls></video>
+                        <img id="imagePreview" class="w-full rounded max-h-48 hidden object-cover aspect-video">
+                        <canvas id="hiddenCanvas" class="hidden"></canvas>
+                    </div>
+                </div>
+
+                <!-- خيارات الجودة، الأبعاد، والمدة -->
+                <div class="card p-5 rounded-xl shadow-lg space-y-4">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-emerald-400"></i> إعدادات الفيديو الإلزامية
+                    </h2>
+
+                    <!-- دقة الفيديو (480p / 720p) -->
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">دقة الفيديو (Quality):</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="setQuality('480p')" id="btn480" class="py-2 text-xs font-semibold rounded border border-slate-700 bg-slate-800 text-slate-300">480p (سريع)</button>
+                            <button type="button" onclick="setQuality('720p')" id="btn720" class="py-2 text-xs font-semibold rounded border border-blue-500 bg-blue-600/20 text-blue-400">720p (عالي الدقة HD)</button>
+                        </div>
+                    </div>
+
+                    <!-- أبعاد الفيديو (16:9 ثابتة أو اختيارية) -->
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">نسبة العرض إلى الارتفاع (Aspect Ratio):</label>
+                        <select id="aspectRatio" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                            <option value="16:9" selected>16:9 (عريض للشاشات واليوتيوب - القياسي)</option>
+                            <option value="9:16">9:16 (طولي للريلز والتيك توك)</option>
+                        </select>
+                    </div>
+
+                    <!-- المدة (من 30 ثانية إلى 5 دقائق) -->
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-400">المدة الكلية المطلوبة:</span>
+                            <span id="durationBadge" class="text-blue-400 font-bold font-mono">30 ثانية</span>
+                        </div>
+                        <input type="range" id="durationSlider" min="30" max="300" step="10" value="30" oninput="updateDuration(this.value)" class="w-full accent-blue-500 cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                            <span>30 ثانية</span>
+                            <span>دقيقتان</span>
+                            <span>5 دقائق (الحد الأقصى)</span>
+                        </div>
+                    </div>
+
+                    <!-- النص الموجه للتمديد -->
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">وصف الحركة (Prompt):</label>
+                        <input type="text" id="promptText" value="smooth dynamic motion, cinematic 16:9, highly detailed" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    </div>
+
+                    <button onclick="startRealPipeline()" id="runBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition">
+                        <i class="fa-solid fa-play"></i> بدء التوليد والتمديد الحقيقي
+                    </button>
+                </div>
+            </div>
+
+            <!-- العمود الرئيسي: إدارة المفاتيح وسجل المعالجة الحقيقية (7 أعمدة) -->
+            <div class="col-span-12 space-y-5">
+                
+                <!-- لوحة مفاتيح الـ API الحقيقية للتشغيل الفعلي -->
+                <div class="card p-5 rounded-xl shadow-lg space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-key text-yellow-400"></i> مفاتيح المنصات (أدخل مفتاحاً واحداً على الأقل للعمل الحقيقي)
+                        </h2>
+                    </div>
+                    
+                    <div class="space-y-2.5">
+                        <!-- Fal.ai (الأنسب والأسرع لإنشاء فيديو حقيقي بدقة 16:9) -->
+                        <div class="p-2.5 bg-slate-900 rounded border border-slate-800">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-slate-200">1. Fal.ai (الأسرع في توليد الفيديوهات الحقيقية)</span>
+                                <a href="https://fal.ai/dashboard/keys" target="_blank" class="text-[11px] text-blue-400 hover:underline">احصل على المفتاح ↗</a>
+                            </div>
+                            <input type="password" id="falKey" placeholder="fal_xxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-white">
+                        </div>
+
+                        <!-- Hugging Face (مجاني) -->
+                        <div class="p-2.5 bg-slate-900 rounded border border-slate-800">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-slate-200">2. Hugging Face (مجاني بالكامل عبر نماذج SVD)</span>
+                                <a href="https://huggingface.co/settings/tokens" target="_blank" class="text-[11px] text-blue-400 hover:underline">احصل على المفتاح ↗</a>
+                            </div>
+                            <input type="password" id="hfKey" placeholder="hf_xxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-white">
+                        </div>
+                    </div>
+                </div>
+
+                                <!-- منصات إضافية (مفاتيح مجانية) -->
+                <div class="card p-5 rounded-xl shadow-lg space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-globe text-cyan-400"></i> منصات إضافية (مفاتيح مجانية)
+                        </h2>
+                        <a href="settings.html" class="text-[11px] text-blue-400 hover:underline">إدارة المفاتيح ↗</a>
+                    </div>
+                    <p class="text-[11px] text-slate-400">اضغط على "احصل على المفتاح" لفتح صفحة التسجيل المجاني لكل منصة.</p>
+                    <div id="extraProviders" class="space-y-2 max-h-64 overflow-y-auto custom-scroll"></div>
+                </div>
+
+                <!-- مساعد البرومبت (Groq) -->
+                <div class="card p-5 rounded-xl shadow-lg space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-orange-400"></i> مساعد البرومبت (Groq) — صياغة احترافية
+                        </h2>
+                        <span class="text-[11px] text-slate-400">يستخدم مفتاح Groq</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">صف ما تريد (تعديل/توليد فيديو). سيقوم النموذج بفحص طلبك وصياغة برومبت احترافي، ثم يطلب منك بدء التوليد.</p>
+                    <div id="chatBox" class="bg-black/90 p-3 rounded-lg text-xs h-48 overflow-y-auto custom-scroll space-y-2 border border-slate-800"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="chatInput" placeholder="اكتب طلبك هنا..." class="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white" onkeydown="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()" class="bg-orange-600 hover:bg-orange-500 text-white px-3 py-2 rounded text-xs font-semibold">إرسال</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="applyPromptToField()" class="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 px-3 py-1.5 rounded text-[11px] font-semibold">استخدام البرومبت في حقل الوصف</button>
+                    </div>
+                </div>
+
+<!-- سجل الأحداث المباشر من السيرفر -->
+                <div class="card p-4 rounded-xl shadow-lg space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-terminal text-purple-400"></i> مخرجات الاتصال بالخادم المباشر
+                        </span>
+                        <span id="currentStatus" class="text-[11px] text-slate-400 font-mono">في الانتظار...</span>
+                    </div>
+                    <div id="terminal" class="bg-black/90 p-3 rounded-lg font-mono text-xs text-emerald-400 h-44 overflow-y-auto custom-scroll space-y-1 border border-slate-800">
+                        <p class="text-slate-500">> أدخل مفتاح Fal.ai أو HuggingFace، ارفع ملفك، واضغط على "بدء التوليد الحقيقي".</p>
+                    </div>
+                </div>
+
+                <!-- الفيديو الحقيقي الناتج وزر التحميل المباشر -->
+                <div id="outputSection" class="card p-5 rounded-xl shadow-lg hidden border-emerald-500/40">
+                    <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-400"></i> تم توليد الفيديو بنجاح!
+                    </h3>
+                    <video id="finalRealVideo" class="w-full rounded-lg bg-black aspect-video mb-3" controls></video>
+                    
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <button onclick="toggleFullscreenVideo()" class="inline-flex items-center gap-2 bg-slate-700/40 hover:bg-slate-700 text-slate-200 border border-slate-600/40 px-3 py-2 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-expand"></i> ملء الشاشة
+                        </button>
+                        <button onclick="saveToDesktop()" class="inline-flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-download"></i> حفظ إلى سطح المكتب
+                        </button>
+                    </div>                <!-- قسم الصياغة والبرومبت -->
+                <div class="card p-5 rounded-xl shadow-lg space-y-3">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-comment-dots text-orange-400"></i> مساعد البرومبت
+                    </h2>
+                    <div class="flex flex-col lg:flex-row gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs text-slate-400 mb-1">وصف الحركة (Prompt):</label>
+                            <input type="text" id="promptText" value="smooth dynamic motion, cinematic 16:9, highly detailed" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                        </div>
+                        <div class="w-48 flex-shrink-0">
+                            <button onclick="startRealPipeline()" id="runBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition">
+                                <i class="fa-solid fa-play"></i> بدء التوليد والتمديد
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-400">صف ما تريد، سيقوم النموذج بصياغة برومبت احترافي.</p>
+                </div>
+
+
+                    <a id="downloadBtn" href="#" download="extended_ai_video.mp4" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-download"></i> تحميل الفيديو النهائي إلى سطح المكتب
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedQuality = '720p';
+        let mediaFile = null;
+        let generatedVideoBlob = null;
+
+        // إدارة الجودة
+        function setQuality(q) {
+            selectedQuality = q;
+            if(q === '480p') {
+                document.getElementById('btn480').className = 'py-2 text-xs font-semibold rounded border border-blue-500 bg-blue-600/20 text-blue-400';
+                document.getElementById('btn720').className = 'py-2 text-xs font-semibold rounded border border-slate-700 bg-slate-800 text-slate-300';
+            } else {
+                document.getElementById('btn720').className = 'py-2 text-xs font-semibold rounded border border-blue-500 bg-blue-600/20 text-blue-400';
+                document.getElementById('btn480').className = 'py-2 text-xs font-semibold rounded border border-slate-700 bg-slate-800 text-slate-300';
+            }
+        }
+
+        // إدارة المدة
+        function updateDuration(val) {
+            const minutes = Math.floor(val / 60);
+            const seconds = val % 60;
+            let text = '';
+            if(minutes > 0) text += `${minutes} دقيقة `;
+            if(seconds > 0) text += `${seconds} ثانية`;
+            document.getElementById('durationBadge').innerText = text || `${val} ثانية`;
+        }
+
+        // حفظ الإعدادات بالكامل
+        function saveAllSettings() {
+            localStorage.setItem('studio_quality', selectedQuality);
+            localStorage.setItem('studio_duration', document.getElementById('durationSlider').value);
+            localStorage.setItem('studio_aspect', document.getElementById('aspectRatio').value);
+            localStorage.setItem('studio_prompt', document.getElementById('promptText').value);
+            localStorage.setItem('studio_falKey', document.getElementById('falKey').value);
+            localStorage.setItem('studio_hfKey', document.getElementById('hfKey').value);
+            log("تم حفظ جميع الإعدادات والمفاتيح محلياً بنجاح.");
+            alert("تم حفظ الإعدادات والمفاتيح!");
+        }
+
+        // استعادة الإعدادات المحفوظة عند فتح الموقع
+        window.onload = async () => {
+            updateProjectStatus();
+            if (typeof renderProviderLinks === 'function') renderProviderLinks('extraProviders');
+            // load project media if available
+            const saved = localStorage.getItem('studio_project');
+            if (saved) {
+                try {
+                    const proj = JSON.parse(saved);
+                    if (proj.quality) setQuality(proj.quality);
+                    if (proj.duration) { document.getElementById('durationSlider').value = proj.duration; updateDuration(proj.duration); }
+                    if (proj.aspect) document.getElementById('aspectRatio').value = proj.aspect;
+                    if (proj.prompt) document.getElementById('promptText').value = proj.prompt;
+                    if (proj.dataUrl) {
+                        const r = await fetch(proj.dataUrl);
+                        const blob = await r.blob();
+                        const file = new File([blob], proj.fileName || 'project', { type: proj.fileType || 'video/mp4' });
+                        handleFile(file);
+                    }
+                } catch (e) { console.warn(e); }
+            }
+            // auto-start generation after media loaded
+            setTimeout(() => { try { startRealPipeline(); } catch (e) { console.warn(e); } }, 2000);
+
+            updateProjectStatus();
+            if(typeof renderProviderLinks === 'function') renderProviderLinks('extraProviders');
+            if(localStorage.getItem('studio_quality')) setQuality(localStorage.getItem('studio_quality'));
+            if(localStorage.getItem('studio_duration')) {
+                const dur = localStorage.getItem('studio_duration');
+                document.getElementById('durationSlider').value = dur;
+                updateDuration(dur);
+            }
+            if(localStorage.getItem('studio_aspect')) document.getElementById('aspectRatio').value = localStorage.getItem('studio_aspect');
+            if(localStorage.getItem('studio_prompt')) document.getElementById('promptText').value = localStorage.getItem('studio_prompt');
+            if(localStorage.getItem('studio_falKey')) document.getElementById('falKey').value = localStorage.getItem('studio_falKey');
+            if(localStorage.getItem('studio_hfKey')) document.getElementById('hfKey').value = localStorage.getItem('studio_hfKey');
+        };
+
+        // حذف وتفريغ كل شيء
+        function resetAll() {
+            if(!confirm("هل تريد تفريغ الوسائط وإعادة تعيين الإعدادات؟")) return;
+            clearMedia();
+            document.getElementById('promptText').value = "smooth dynamic motion, cinematic 16:9, highly detailed";
+            document.getElementById('durationSlider').value = 30;
+            updateDuration(30);
+            setQuality('720p');
+            document.getElementById('outputSection').classList.add('hidden');
+            log("تمت إعادة ضبط الاستوديو.");
+        }
+
+        // رفع الوسائط
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        function handleFile(file) {
+            if(!file) return;
+            mediaFile = file;
+            document.getElementById('previewArea').classList.remove('hidden');
+            document.getElementById('fileName').innerText = file.name;
+            const url = URL.createObjectURL(file);
+
+            if(file.type.startsWith('video/')) {
+                const vid = document.getElementById('videoPreview');
+                vid.src = url;
+                vid.classList.remove('hidden');
+                document.getElementById('imagePreview').classList.add('hidden');
+            } else {
+                const img = document.getElementById('imagePreview');
+                img.src = url;
+                img.classList.remove('hidden');
+                document.getElementById('videoPreview').classList.add('hidden');
+            }
+            log(`تم رفع الملف محلياً: ${file.name}`);
+        }
+
+        function clearMedia() {
+            mediaFile = null;
+            fileInput.value = '';
+            document.getElementById('previewArea').classList.add('hidden');
+            document.getElementById('videoPreview').src = '';
+            document.getElementById('imagePreview').src = '';
+        }
+
+        function log(msg) {
+            const term = document.getElementById('terminal');
+            const p = document.createElement('p');
+            p.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            term.appendChild(p);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // تحويل الملف لصيغة Data URL (Base64) للإرسال عبر الشبكة
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // استخراج الإطار الأخير من الفيديو بشكل حقيقي
+        function captureLastFrame(videoElem) {
+            return new Promise((resolve) => {
+                const canvas = document.getElementById('hiddenCanvas');
+                canvas.width = (selectedQuality === '720p') ? 1280 : 854;
+                canvas.height = (selectedQuality === '720p') ? 720 : 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
+            });
+        }
+
+        // محرك التوليد الحقيقي (Real Pipeline Engine)
+        async function startRealPipeline() {
+            if(!mediaFile) {
+                alert("يرجى اختيار صورة أو فيديو أولاً من سطح مكتبك!");
+                return;
+            }
+
+            const falKey = document.getElementById('falKey').value.trim();
+            const hfKey = document.getElementById('hfKey').value.trim();
+
+            if(!falKey && !hfKey) {
+                alert("يرجى إدخال مفتاح Fal.ai أو HuggingFace لبدء التوليد الحقيقي من السيرفر.");
+                return;
+            }
+
+            const targetDuration = parseInt(document.getElementById('durationSlider').value);
+            const prompt = document.getElementById('promptText').value;
+
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('runBtn').classList.add('opacity-50');
+            log(`🚀 بدء التوليد الحقيقي... الهدف: الوصول إلى ${targetDuration} ثانية بدقة ${selectedQuality} ونسبة 16:9.`);
+
+            let currentDuration = 0;
+            let currentInputBase64 = await fileToBase64(mediaFile);
+
+            // دورة التوليد الفعلية
+            while(currentDuration < targetDuration) {
+                log(`جاري طلب توليد مقطع مدته 5 ثوانٍ إضافية...`);
+                let resultVideoUrl = null;
+
+                // 1. المحاولة أولاً عبر Fal.ai
+                if(falKey) {
+                    try {
+                        log("الاتصال بخادم Fal.ai الحقيقي (Fast SV3D/LTX)...");
+                        resultVideoUrl = await callRealFalAPI(falKey, currentInputBase64, prompt);
+                    } catch(err) {
+                        log(`⚠️ تعذر الإكمال عبر Fal.ai (${err.message})، جاري التبديل للموقع البديل...`);
+                    }
+                }
+
+                // 2. إذا فشل أو لم يتوفر المفتاح، نتحول لـ Hugging Face
+                if(!resultVideoUrl && hfKey) {
+                    try {
+                        log("الاتصال بالخادم البديل Hugging Face (SVD Video API)...");
+                        resultVideoUrl = await callRealHuggingFaceAPI(hfKey, currentInputBase64);
+                    } catch(err) {
+                        log(`⚠️ فشل التوليد عبر Hugging Face أيضاً: ${err.message}`);
+                    }
+                }
+
+                // إذا نجح التوليد
+                if(resultVideoUrl) {
+                    currentDuration += 5;
+                    log(`✅ تم استلام المقطع الحقيقي بنجاح! المدة المنجزة حتى الآن: ${currentDuration} ثانية.`);
+                    
+                    // عرض النتيجة الحالية
+                    displayFinalResult(resultVideoUrl);
+
+                    // استخراج الإطار الأخير لإرساله في الدورة التالية
+                    const tempVid = document.getElementById('finalRealVideo');
+                    currentInputBase64 = await captureLastFrame(tempVid);
+                } else {
+                    log("❌ توقفت العملية: لم يتمكن أي خادم من إكمال التوليد بسبب عدم صحة المفتاح أو نفاد رصيده.");
+                    break;
+                }
+            }
+
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('runBtn').classList.remove('opacity-50');
+            log("🎉 تمت معالجة وتمديد الفيديو بالكامل!");
+        }
+
+        // الاتصال الفعلي بخادم Fal.ai
+        async function callRealFalAPI(apiKey, imageBase64, prompt) {
+            const response = await fetch("https://queue.fal.run/fal-ai/fast-svd/image-to-video", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Key ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    image_url: imageBase64,
+                    motion_bucket_id: 127,
+                    fps: 25,
+                    cond_aug: 0.02
+                })
+            });
+
+            if(!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            const data = await response.json();
+            return data.video ? data.video.url : null;
+        }
+
+        // الاتصال الفعلي بخادم Hugging Face SVD
+        async function callRealHuggingFaceAPI(apiKey, imageBase64) {
+            const response = await fetch("https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ inputs: imageBase64 })
+            });
+
+            if(!response.ok) throw new Error(`HF Status: ${response.status}`);
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+        }
+
+        // عرض النتيجة وتجهيز زر التحميل لسطح المكتب
+        function displayFinalResult(videoUrl) {
+            const outSec = document.getElementById('outputSection');
+            const vid = document.getElementById('finalRealVideo');
+            const down = document.getElementById('downloadBtn');
+
+            vid.src = videoUrl;
+            down.href = videoUrl;
+            outSec.classList.remove('hidden');
+        }
+    
+        // ===== مساعد البرومبت (Groq) =====
+        let lastGeneratedPrompt = '';
+        let chatHistory = [];
+        function appendChat(role, text) {
+            const box = document.getElementById('chatBox');
+            const p = document.createElement('p');
+            p.className = role === 'user' ? 'text-blue-300' : 'text-emerald-300';
+            p.innerHTML = '<span class="font-bold">' + (role === 'user' ? 'أنت: ' : 'المساعد: ') + '</span>' + text.replace(/\n/g, '<br>');
+            box.appendChild(p);
+            box.scrollTop = box.scrollHeight;
+        }
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+            appendChat('user', msg);
+            chatHistory.push({ role: 'user', content: msg });
+
+            const groqKey = (localStorage.getItem('studio_groqKey') || '').trim();
+            if (!groqKey) {
+                appendChat('assistant', 'يرجى إدخال مفتاح Groq في صفحة الإعدادات أولاً.');
+                return;
+            }
+
+            const systemPrompt = 'أنت مساعد احترافي لصياغة برومبتات توليد/تعديل الفيديو. قاعدة صارمة: لا تطرح أي أسئلة توضيحية. لا تغير أي عنصر من المشهد الأصلي. أضف التعديلات فقط بناءً على طلب المستخدم. ' +
+                'فور استلام الطلب: حلّله وحلّل المشهد، ثم صِغ فوراً برومبتاً احترافياً باللغة الإنجليزية مناسباً لمحركات SVD/صورة-إلى-فيديو (Fal.ai/HuggingFace). ' +
+                'أعد البرومبت داخل كتلة: PROMPT: <...>. بعد ذلك أعطِ إشارة لبدء التوليد.';
+
+            const isImage = !!(mediaFile && mediaFile.type && mediaFile.type.startsWith('image/'));
+            const textModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'allam-2-7b'];
+            const visionModels = [];
+            const candidates = isImage ? visionModels.concat(textModels) : textModels;
+
+            let baseMessages = [{ role: 'system', content: systemPrompt }].concat(chatHistory);
+            let imageAttachedMessages = null;
+            if (isImage) {
+                const b64 = await fileToBase64(mediaFile);
+                const msgs = [{ role: 'system', content: systemPrompt }].concat(chatHistory.slice(0, -1));
+                msgs.push({
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: msg },
+                        { type: 'image_url', image_url: { url: b64 } }
+                    ]
+                });
+                imageAttachedMessages = msgs;
+            }
+
+            let lastErr = null;
+            for (const model of candidates) {
+                try {
+                    const useImage = isImage && visionModels.includes(model);
+                    const messages = useImage ? imageAttachedMessages : baseMessages;
+                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + groqKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: model, messages: messages, temperature: 0.7 })
+                    });
+                    if (!res.ok) {
+                        let et = ''; try { et = await res.text(); } catch (e) {}
+                        throw new Error('HTTP ' + res.status + ' ' + et.slice(0, 180));
+                    }
+                    const data = await res.json();
+                    const reply = data.choices && data.choices[0] ? data.choices[0].message.content : 'لا توجد استجابة.';
+                    appendChat('assistant', reply + '\n\n[Model: ' + model + ']');
+                    chatHistory.push({ role: 'assistant', content: reply });
+                    const m = reply.match(/PROMPT:\s*(.+)/i);
+                    if (m) { lastGeneratedPrompt = m[1].trim(); flashStartButton(); }
+                    return;
+                } catch (err) {
+                    lastErr = err;
+                }
+            }
+            try {
+                const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': 'Bearer ' + groqKey } });
+                if (r.ok) {
+                    const d = await r.json();
+                    const names = (d.data || []).map(x => x.id).slice(0, 12).join(', ');
+                    appendChat('assistant', '⚠️ فشل الاتصال. النماذج المتاحة لحسابك: ' + names);
+                    return;
+                }
+            } catch (e) {}
+            appendChat('assistant', '⚠️ فشل الاتصال: ' + (lastErr ? lastErr.message : 'unknown'));
+        }
+        function applyPromptToField() {
+            if (!lastGeneratedPrompt) {
+                alert('لا يوجد برومبت مُولَّد بعد. تحدث مع المساعد أولاً.');
+                return;
+            }
+            document.getElementById('promptText').value = lastGeneratedPrompt;
+            alert('تم نسخ البرومبت إلى حقل الوصف.');
+        }
+
+        // ===== إدارة المشروع / ملء الشاشة / حفظ إلى سطح المكتب =====
+        function updateProjectStatus() {
+            const st = document.getElementById('projectStatus');
+            if (!st) return;
+            const saved = localStorage.getItem('studio_project');
+            if (saved) {
+                try {
+                    const proj = JSON.parse(saved);
+                    st.innerText = 'مشروع محفوظ: ' + (proj.fileName || 'بدون اسم') + ' (' + (proj.savedAt || '') + ')';
+                } catch (e) { st.innerText = 'مشروع محفوظ.'; }
+            } else {
+                st.innerText = 'لا يوجد مشروع محفوظ.';
+            }
+        }
+        function saveProject() {
+            if (!mediaFile) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const proj = {
+                    fileName: mediaFile.name,
+                    fileType: mediaFile.type,
+                    dataUrl: reader.result,
+                    quality: selectedQuality,
+                    duration: document.getElementById('durationSlider').value,
+                    aspect: document.getElementById('aspectRatio').value,
+                    prompt: document.getElementById('promptText').value,
+                    savedAt: new Date().toLocaleString()
+                };
+                try { localStorage.setItem('studio_project', JSON.stringify(proj)); } catch (e) { console.warn('project save failed', e); }
+                updateProjectStatus();
+            };
+            reader.readAsDataURL(mediaFile);
+        }
+        function newProject() {
+            if (!confirm('بدء مشروع جديد؟ سيتم تفريغ الوسائط الحالية.')) return;
+            clearMedia();
+            localStorage.removeItem('studio_project');
+            document.getElementById('promptText').value = 'smooth dynamic motion, cinematic 16:9, highly detailed';
+            document.getElementById('durationSlider').value = 30;
+            updateDuration(30);
+            setQuality('720p');
+            updateProjectStatus();
+            log('تم إنشاء مشروع جديد.');
+        }
+        function continueProject() {
+            const saved = localStorage.getItem('studio_project');
+            if (!saved) { alert('لا يوجد مشروع محفوظ.'); return; }
+            let proj;
+            try { proj = JSON.parse(saved); } catch (e) { alert('مشروع تالف.'); return; }
+            // restore settings
+            if (proj.quality) setQuality(proj.quality);
+            if (proj.duration) { document.getElementById('durationSlider').value = proj.duration; updateDuration(proj.duration); }
+            if (proj.aspect) document.getElementById('aspectRatio').value = proj.aspect;
+            if (proj.prompt) document.getElementById('promptText').value = proj.prompt;
+            // restore media
+            if (proj.dataUrl) {
+                fetch(proj.dataUrl).then(r => r.blob()).then(blob => {
+                    const file = new File([blob], proj.fileName || 'project', { type: proj.fileType || 'video/mp4' });
+                    handleFile(file);
+                    log('تمت متابعة المشروع: ' + (proj.fileName || ''));
+                });
+            }
+            updateProjectStatus();
+        }
+        function toggleFullscreenVideo() {
+            const vid = document.getElementById('finalRealVideo');
+            if (!vid) return;
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else if (vid.requestFullscreen) {
+                vid.requestFullscreen();
+            } else if (vid.webkitRequestFullscreen) {
+                vid.webkitRequestFullscreen();
+            }
+        }
+        async function saveToDesktop() {
+            const vid = document.getElementById('finalRealVideo');
+            if (!vid || !vid.src) { alert('لا يوجد فيديو للحفظ.'); return; }
+            try {
+                const res = await fetch(vid.src);
+                const blob = await res.blob();
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'extended_ai_video.mp4',
+                        types: [{ description: 'Video', accept: { 'video/mp4': ['.mp4'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    alert('تم الحفظ إلى سطح المكتب.');
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'extended_ai_video.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            } catch (e) {
+                if (e.name !== 'AbortError') alert('فشل الحفظ: ' + e.message);
+            }
+        }
+        // auto-save project on file upload
+        const _origHandleFile = handleFile;
+        handleFile = function(file) {
+            _origHandleFile(file);
+            saveProject();
+        };
+
+        function flashStartButton() {
+            const btn = document.getElementById('runBtn');
+            if (!btn) return;
+            btn.classList.add('flash-start');
+            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => btn.classList.remove('flash-start'), 3500);
+        }
+</script>
+</body>
+</html>

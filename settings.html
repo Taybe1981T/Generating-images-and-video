@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعدادات مفاتيح API | AI Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #080c14; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background-color: #0f172a; border: 1px solid #1e293b; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <header class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-4 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-blue-400 flex items-center gap-2">
+                    <i class="fa-solid fa-key"></i> إعدادات مفاتيح API
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400 mt-1">أدخل مفاتيح المنصات (مجانية) هنا. يتم حفظها محلياً في متصفحك.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="ai_studio_code.html" class="bg-slate-700/40 hover:bg-slate-700 text-slate-200 border border-slate-600/40 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للستوديو
+                </a>
+                <button onclick="saveAllKeys()" class="bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-floppy-disk"></i> حفظ جميع المفاتيح
+                </button>
+            </div>
+        </header>
+
+        <div id="keysContainer" class="space-y-3"></div>
+
+        <div class="card p-4 rounded-xl shadow-lg">
+            <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-blue-400"></i> ملاحظات
+            </h3>
+            <ul class="text-xs text-slate-400 space-y-1 list-disc pr-4">
+                <li>جميع المفاتيح تُحفظ في localStorage (متصفحك فقط)، ولا تُرسل إلى أي خادم aside from the provider you use.</li>
+                <li>للاختبار على فيديو: احفظ المفتاح، ثم عد للستوديو وارفع صورة/فيديو واضغط "بدء التوليد".</li>
+                <li>Pollinations.ai لا يتطلب مفتاحاً (مجاني بالكامل).</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="providers.js"></script>
+    <script>
+        function buildKeysUI() {
+            const container = document.getElementById('keysContainer');
+            container.innerHTML = '';
+            window.AI_PROVIDERS.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card p-4 rounded-xl shadow-lg';
+                const storageKey = window.providerStorageKey(p.id);
+                const saved = localStorage.getItem(storageKey) || '';
+                const noKeyNote = p.noKey ? '<p class="text-[11px] text-emerald-400 mt-1">لا حاجة لمفتاح — الخدمة مجانية بالكامل.</p>' : '';
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <div>
+                            <span class="text-sm font-bold text-slate-200">${p.name}</span>
+                            <span class="text-[11px] text-slate-400 mr-2">${p.desc}</span>
+                        </div>
+                        <a href="${p.link}" target="_blank" rel="noopener" class="shrink-0 text-[11px] text-blue-400 hover:underline bg-blue-600/10 border border-blue-500/30 px-2.5 py-1.5 rounded text-center">
+                            احصل على المفتاح مجاناً ↗
+                        </a>
+                    </div>
+                    ${noKeyNote}
+                    <input type="password" id="${p.id}Key" value="${saved.replace(/"/g,'&quot;')}" placeholder="${p.placeholder}" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white" ${p.noKey ? 'disabled' : ''}>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function saveAllKeys() {
+            window.AI_PROVIDERS.forEach(p => {
+                if (p.noKey) return;
+                const el = document.getElementById(p.id + 'Key');
+                if (el) localStorage.setItem(window.providerStorageKey(p.id), el.value.trim());
+            });
+            // keep legacy keys in sync
+            const fal = document.getElementById('falKey');
+            const hf = document.getElementById('hfKey');
+            if (fal) localStorage.setItem('studio_falKey', fal.value.trim());
+            if (hf) localStorage.setItem('studio_hfKey', hf.value.trim());
+            alert('تم حفظ جميع المفاتيح!');
+        }
+
+        window.onload = () => {
+            buildKeysUI();
+        };
+    </script>
+</body>
+</html>
